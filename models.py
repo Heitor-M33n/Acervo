@@ -102,21 +102,29 @@ class Usuario(BaseEntity):
         data_criacao (date): data em que a instância foi criada
         nome (str): nome do usuário
         email (str): email do usuário
+        emprestimos (list): lista de empréstimos já feitos
+        debitos (dict): lista de débitos já feitos, no formato {"motivo": preço}
+        historico (list, de classe): Armazena todos os usuários
     """
 
-    __slots__ = ['nome', 'email']
+    __slots__ = ['nome', 'email', 'emprestimos', 'debitos']
+
+    historico = []
 
     def __init__(self, nome: str, email: str) -> None:
         """Inicializa Usuario.
         
         Args:
             nome (str): nome do usuário
-        email (str): email do usuário
+            email (str): email do usuário
         """
 
         super().__init__()
         self.nome = nome
         self.email = email
+        self.emprestimos = []
+        self.debitos = {}
+        Usuario.historico.append(self)
 
     def __lt__(self, other) -> bool:
         """Compara instâncias do Usuario, usando seus nomes como parâmetro de verificação.
@@ -159,9 +167,12 @@ class Emprestimo(BaseEntity):
         data_prev_devol (date): Data prevista para devolução
         data_retirada (date): Data em que ocorreu o empréstimo
         data_dev_real (date):  Data em que ocorrerá a devolução, maior prioridade, mas por padrão, None
+        historico (list, de classe): Armazena todos os empréstimos já registrados
     """
 
     __slots__ = ['obra', 'usuario', 'data_prev_devol', 'data_retirada', 'data_dev_real']
+
+    historico = []
 
     def __init__(self, obra: Obra, usuario: Usuario, data_prev_devol: date = date.today() + timedelta(days=7), data_retirada: date = date.today()) -> None:
         """Inicializa Emprestimo.
@@ -179,6 +190,7 @@ class Emprestimo(BaseEntity):
         self.data_retirada = data_retirada
         self.data_prev_devol = data_prev_devol
         self.data_dev_real = None
+        Emprestimo.historico.append(self)
 
     def marcar_devolucao(self, data_dev_real: date) -> None:
         """Registra data de devolução.

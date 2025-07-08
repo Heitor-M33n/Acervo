@@ -8,16 +8,17 @@ from models import Obra
 from models import Usuario
 
 class Acervo:
-    """Acervo, realiza e manipula empréstimos, armazena estoque de obras
+    """Acervo, realiza e manipula empréstimos, armazena estoque de obras                     
 
     Armazena as obras em um dicionário em que as keys são seus ids, realiza a manipulação total dos empréstimos
     E possui uma classe interna responsável por criar relatórios
     
     Attributes:
-        estoque (dict): dicionário no formato {obra.id: obra.quantidade}
+        estoque (dict): dicionário no formato {obra.titulo: obra.quantidade}
+        emprestimos_ativos (list): lista de todos empréstimos em vigor
     """
 
-    __slots__ = ['estoque']
+    __slots__ = ['estoque', 'emprestimos_ativos']
 
     def _relatorio_builder(self):
         pass
@@ -28,16 +29,16 @@ class Acervo:
     def __init__(self) -> None:
         """Inicializa Acervo
         """
-        self.estoque = {'Obra': 'qtd_disponível'}
+        self.estoque = {'Obra': 'qtd_disponível'}  
+        self.emprestimos_ativos = []
 
     def __iadd__(self, obra: Obra):
         """Função do operador +=, adiciona uma obra no estoque, caso já esteja nele, +1 quantidade
         
         Args:
             obra (Obra): obra que está sendo incrementada ao estoque
-            """
+        """
         if obra in self.estoque:
-            self.estoque[obra.titulo] += 1
             obra.quantidade += 1
         else:
             self.estoque[obra.titulo] = obra.quantidade
@@ -49,14 +50,13 @@ class Acervo:
         
         Args:
             obra (Obra): Obra que está sendo decrementada do estoque
-            """
+        """
         if obra in self.estoque:
-            self.estoque[obra.titulo] -= 1
             obra.quantidade -= 1
         else:
             pass
 
-        if self.estoque[obra.titulo] <= 0:
+        if obra.quantidade <= 0:
             self.estoque.pop(obra.titulo, None)
 
         return self
@@ -77,7 +77,7 @@ class Acervo:
         """
         self -= obra
 
-    def emprestar(self, obra: Obra, usuario: Usuario, dias: int = 7) -> None:
+    def emprestar(self, obra: Obra, usuario: Usuario, dias: int = 7) -> Emprestimo:
         """Cria um empréstimo com uma data de devolução prevista em 7 dias
         
         Como uma obra foi emprestada, decrementa 1 do estoque
@@ -91,8 +91,10 @@ class Acervo:
             ValueError: Ocorre caso a obra não esteja em estoque    
         """
         if obra.disponivel(self.estoque):
-            emp = Emprestimo(obra, usuario, date.today() + timedelta(days=dias))
             self.remover(obra)
+            emp = Emprestimo(obra, usuario, date.today() + timedelta(days=dias))
+            self.emprestimos_ativos.append(emp)
+            return emp
         else:
             raise ValueError
 
@@ -107,6 +109,7 @@ class Acervo:
             self.multar()
 
         self.adicionar(emprestimo.obra)
+        self.emprestimos_ativos.pop(emprestimo)
         emprestimo.marcar_devolucao()
     
     def renovar(self, emprestimo: Emprestimo, dias_extras: timedelta = timedelta(days=7)) -> None:
@@ -114,19 +117,21 @@ class Acervo:
         
         Args:
             emprestimo (Emprestimo): Empréstimo realizado
-            dias_extras (timedelta): Dias de atraso
+            dias_extras (timedelta): Dias adicionados
         """
         if emprestimo.dias_atraso() > dias_extras:
             return
             #Atraso tão grande que mesmo renovando ainda está atrasado, ainda estou vendo o que vou fazer
 
         if emprestimo.dias_atraso():
-            self.multar()
+            self.multar(emprestimo)
 
         emprestimo.data_prev_devol += dias_extras
 
-    def valor_multa(self, emprestimo: Emprestimo, data_ref: date = date.today()) -> float:
+    def valor_multa(self, emprestimo: Emprestimo) -> float:
         """Calcula a multa sobre o atraso entre a data_prev_dev e a data_ref
+
+        A multa é de R$ 1,00 por dia de atraso
         
         Args:
             emprestimo (Emprestimo): Empréstimo realizado
