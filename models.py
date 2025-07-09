@@ -87,7 +87,7 @@ class Obra(BaseEntity):
             return False
         
     def __str__(self) -> str:
-        """Retorna uma string para representar o objeto no print().
+        """Retorna uma string para representar o objeto.
         
         Returns:
             str: Nome e ano da obra
@@ -149,7 +149,7 @@ class Usuario(BaseEntity):
         return self.nome > other.nome
     
     def __str__(self) -> str:
-        """Retorna uma string para representar o objeto no print().
+        """Retorna uma string para representar o objeto.
         
         Returns:
             str: nome do usuário
@@ -217,4 +217,12 @@ class Emprestimo(BaseEntity):
         Returns:
             str: 'prev: dd/mm'
         """
-        return f'prev: {date.strftime('%d/%m')}'
+        string = f'Empréstimo da obra {self.obra}'
+        if not self.data_dev_real:
+            string += f', Data prev de devolução: {self.data_prev_devol}'
+            if self.dias_atraso():
+                string += f', Atrasado.'
+            else:
+                string += f', Em dia.'
+        else:
+            string += f', Devolvido em {self.data_dev_real.strftime('%d/%m/%y')}.'
