@@ -2,7 +2,6 @@ from datetime import date
 from datetime import timedelta
 
 from rich.table import Table
-from rich.console import Console
 
 from models import Emprestimo
 from models import Obra
@@ -39,7 +38,7 @@ class Acervo:
             estoque_ordenado = dict(sorted(acervo.estoque.items(), key=lambda item: item[1]))
 
             for obra, qnt in estoque_ordenado.items():
-                tabela.add_row(obra, qnt)
+                tabela.add_row(obra, str(qnt))
 
             return tabela
         
@@ -62,7 +61,7 @@ class Acervo:
                 return tabela
 
             for mot, qnt in user.debitos.items():
-                tabela.add_row(mot, f'R$ {qnt:.2f}'.replace('.', ','))
+                tabela.add_row(mot, qnt)
 
             return tabela
         
@@ -116,7 +115,7 @@ class Acervo:
 
             emp: Emprestimo
             for emp in user.emprestimos:
-                tabela.add_row(emp.obra, estado(emp), emp.data_prev_devol, data_dev(emp))
+                tabela.add_row(emp.obra.titulo, estado(emp), str(emp.data_prev_devol.strftime('%d/%m/%y')), data_dev(emp))
 
             return tabela
 
@@ -147,19 +146,22 @@ class Acervo:
         rel_builder = self._RelatorioBuilder()
         match type:
             case 'inv':
-                rel_builder.relatorio_inventario(self)
+                rel = rel_builder.relatorio_inventario(self)
             case 'user_deb':
-                rel_builder.relatorio_debitos_usuario(user)
+                rel = rel_builder.relatorio_debitos_usuario(user)
             case 'user_mov':
-                rel_builder.relatorio_movimentacoes_usuario(user)
+                rel = rel_builder.relatorio_movimentacoes_usuario(user)
             case 'user_hist':
-                rel_builder.relatorio_historico_users() #Para fazer
+                rel = rel_builder.relatorio_historico_users() #Para fazer
             case 'emp_ativos':
-                rel_builder.relatorio_emprestimos_ativos(self) #Para fazer
+                rel = rel_builder.relatorio_emprestimos_ativos(self) #Para fazer
             case 'emp_hist':
-                rel_builder.relatorio_historico_emprestimos() #Para fazer
+                rel = rel_builder.relatorio_historico_emprestimos() #Para fazer
             case 'all':
-                rel_builder.relatorio_completo(self, user) #Para fazer
+                rel = rel_builder.relatorio_completo(self, user) #Para fazer
+            case _:
+                pass        
+        return rel
     def __init__(self) -> None:
         """Inicializa Acervo
         """
@@ -172,10 +174,9 @@ class Acervo:
         Args:
             obra (Obra): obra que está sendo incrementada ao estoque
         """
-        if obra in self.estoque:
+        if obra.titulo in self.estoque:
             obra.quantidade += 1
-        else:
-            self.estoque[obra.titulo] = obra.quantidade
+        self.estoque[obra.titulo] = obra.quantidade
 
         return self
 
@@ -185,8 +186,9 @@ class Acervo:
         Args:
             obra (Obra): Obra que está sendo decrementada do estoque
         """
-        if obra in self.estoque:
+        if obra.titulo in self.estoque:
             obra.quantidade -= 1
+            self.estoque[obra.titulo] = obra.quantidade
         else:
             pass
 
@@ -231,6 +233,7 @@ class Acervo:
             emp = Emprestimo(obra, usuario, date.today() + timedelta(days=dias))
             self.remover(obra)
             self.emprestimos_ativos.append(emp)
+            usuario.emprestimos.append(emp)
             return emp
         else:
             raise ValueError
@@ -246,7 +249,7 @@ class Acervo:
 
         self.adicionar(emprestimo.obra)
         emprestimo.marcar_devolucao(data_dev)
-        self.emprestimos_ativos.pop(emprestimo)
+        self.emprestimos_ativos.remove(emprestimo)
     
     def renovar(self, emprestimo: Emprestimo, dias_extras: timedelta = timedelta(days=7)) -> None:
         """Adia a data de devolução de um empréstimo
@@ -283,7 +286,7 @@ class Acervo:
             emprestimo (Emprestimo): emprestimo sendo verificado
         """
         if emprestimo.dias_atraso():
-            emprestimo.usuario.debitos[f'Multa de atraso na devolução de "{emprestimo.obra}", ocorreu em {date.today().strftime('%d/%m/%y')}.'] = self.valor_multa(emprestimo)
+            emprestimo.usuario.debitos[f'Multa de atraso na devolução de {emprestimo.obra}, ocorreu em {date.today().strftime('%d/%m/%y')}.'] = f'R$ {self.valor_multa(emprestimo)}'.replace('.', ',')
 
     def _valida_obra(self, obra: Obra) -> bool:
         """Valida se uma obra é de fato da classe Obra
