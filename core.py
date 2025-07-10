@@ -21,24 +21,13 @@ class Acervo:
 
     __slots__ = ['estoque', 'emprestimos_ativos']
 
-    def _relatorio_builder(self):
-        pass
-
     class _RelatorioBuilder:
-        """Responsável por construir as tabelas com rich.table.Table
-        """
-
-        def __init__(self) -> None:
-            """Inicializa RelatorioBuilder
-            """
-            pass
-
         def relatorio_inventario(self, acervo) -> Table:
             """Cria uma tabela do inventário de um Acervo.
             
             Args:
-                acervo (Usuario): Acervo do respectivo inventário.
-                
+                acervo (Acervo): Acervo do respectivo inventário
+            
             Returns:
                 Table: Retorna a tabela de obras.
             """
@@ -54,14 +43,14 @@ class Acervo:
 
             return tabela
         
-        def relatorio_debitos(self, user: Usuario) -> Table:
+        def relatorio_debitos_usuario(self, user: Usuario) -> Table:
             """Cria uma tabela de débitos de um usuário específico.
             
             Args:
-                user (Usuario): Usuário que está sendo verificado.
-                
+                user (Usuario): Usuário responsável pelos débitos
+            
             Returns:
-                Table: Retorna a tabela de débitows.
+                Table: Retorna a tabela de débitos.
             """
             tabela = Table(title=f'Débitos de {user}')
 
@@ -81,7 +70,7 @@ class Acervo:
             """Cria uma tabela de movimentações de um usuário específico.
             
             Args:
-                user (Usuario): Usuário que está sendo verificado.
+                user (Usuario): Usuário responsável pelas movimentações
                 
             Returns:
                 Table: Retorna a tabela de movimentações.
@@ -131,18 +120,46 @@ class Acervo:
 
             return tabela
 
+        def relatorio_historico_users(self) -> Table:
+            pass
+
         def relatorio_emprestimos_ativos(self, acervo) -> Table:
             pass
 
         def relatorio_historico_emprestimos(self) -> Table:
             pass
 
-        def relatorio_historico_users(self) -> Table:
+        def relatorio_completo(self, acervo, user: Usuario) -> Table:
             pass
 
-        def relatorio_completo(self) -> Table:
-            pass
-
+    def _relatorio_builder(self, type: str = 'inv', user: Usuario = None) -> Table:
+        """Faz um relatório baseado no tipo solicitado.
+        
+        ('inv', 'user_deb', 'user_mov')
+        
+        Args: 
+            type (str): tipo de relatório, ver tupla acima.
+            user (Usuario): usuário referente ao relatório, quando necessário.
+            
+        Returns:
+            Table: retorna o relatório
+        """
+        rel_builder = self._RelatorioBuilder()
+        match type:
+            case 'inv':
+                rel_builder.relatorio_inventario(self)
+            case 'user_deb':
+                rel_builder.relatorio_debitos_usuario(user)
+            case 'user_mov':
+                rel_builder.relatorio_movimentacoes_usuario(user)
+            case 'user_hist':
+                rel_builder.relatorio_historico_users() #Para fazer
+            case 'emp_ativos':
+                rel_builder.relatorio_emprestimos_ativos(self) #Para fazer
+            case 'emp_hist':
+                rel_builder.relatorio_historico_emprestimos() #Para fazer
+            case 'all':
+                rel_builder.relatorio_completo(self, user) #Para fazer
     def __init__(self) -> None:
         """Inicializa Acervo
         """
