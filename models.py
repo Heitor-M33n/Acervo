@@ -92,7 +92,7 @@ class Obra(BaseEntity):
         Returns:
             str: Nome e ano da obra
         """
-        return f'"{self.titulo}", {self.ano}'
+        return f'"{self.titulo}", {self.autor}'
         
 class Usuario(BaseEntity):
     """Um usuário do serviço de acervo.
